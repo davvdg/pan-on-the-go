@@ -1,0 +1,15 @@
+# PlatformIO
+firmware/.pio/
+firmware/.vscode/
+firmware/include/secrets.h
+
+# Node
+node_modules/
+tools/dist/
+
+# Généré
+out/
+*.log
+
+# OS
+.DS_Store

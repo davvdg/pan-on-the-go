@@ -1,0 +1,357 @@
+<!-- pan-on-the-go — page de test standalone.
+
+     Elle ne dépend de rien : ni de panisto, ni d'un serveur, ni d'un build.
+     C'est l'étape 5 de la méthode — elle valide tout le câblage AVANT de
+     toucher à l'application.
+
+     Deux transports :
+
+       BLE   → depuis le téléphone. Exige https:// (ou http://localhost).
+               Servir par GitHub Pages depuis ce dépôt est le plus simple.
+
+       WS    → depuis le laptop. Exige http:// (une page https ne peut pas
+               ouvrir un ws://, c'est du contenu mixte, bloqué).
+                 npx serve web    puis    http://localhost:3000
+-->
+<title>Pan Test Bench</title>
+<style>
+  :root {
+    --bg: #f6f5f3;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #d9d6d1;
+    --card: #fff;
+    --accent: #c2410c;
+    --ok: #15803d;
+    --bad: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme=light]) {
+      --bg: #16150f; --fg: #f0ede6; --muted: #9a948a; --line: #35322a;
+      --card: #201e17; --accent: #fb923c; --ok: #4ade80; --bad: #f87171;
+    }
+  }
+  :root[data-theme=dark] {
+    --bg: #16150f; --fg: #f0ede6; --muted: #9a948a; --line: #35322a;
+    --card: #201e17; --accent: #fb923c; --ok: #4ade80; --bad: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); margin: 0;
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding-block: 20px; padding-left: 16px; padding-right: 16px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 2px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; margin-bottom: 14px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button {
+    font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 7px;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  input {
+    font: inherit; padding: 8px 10px; border-radius: 7px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+    min-width: 0; flex: 1 1 160px;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); flex: none; }
+  .dot.on { background: var(--ok); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .stat .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .stat .v { font-size: 21px; font-variant-numeric: tabular-nums; font-weight: 650; }
+  .stat .v small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  #pads { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
+  .pad {
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 4px;
+    text-align: center; transition: background .12s, border-color .12s;
+  }
+  .pad.lit { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pad .n { font-weight: 650; font-size: 14px; }
+  .pad .c { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pad.lit .c { color: #fff; opacity: .85; }
+  #log {
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre; overflow: auto; max-height: 190px;
+    color: var(--muted); margin: 0;
+  }
+  .note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
+  .warn { color: var(--bad); }
+</style>
+
+<div class="wrap">
+  <h1>Pan Test Bench</h1>
+  <p class="sub">Valide le câblage et mesure la latence, sans toucher à panisto.</p>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:10px">
+      <span class="dot" id="dot"></span>
+      <strong id="state" style="flex:1 1 auto">déconnecté</strong>
+      <button id="audio">activer le son</button>
+    </div>
+    <div class="row">
+      <button class="primary" id="ble">Connecter en BLE</button>
+      <input id="wsurl" value="ws://192.168.1.50:81" spellcheck="false">
+      <button id="ws">Connecter en WS</button>
+    </div>
+    <p class="note" id="envnote"></p>
+  </div>
+
+  <div class="card stats">
+    <div class="stat"><div class="k">notes</div><div class="v" id="s-hits">0</div></div>
+    <div class="stat"><div class="k">débit crête</div><div class="v" id="s-rate">0<small> /s</small></div></div>
+    <div class="stat"><div class="k">jitter liaison</div><div class="v" id="s-jit">–<small> ms</small></div></div>
+    <div class="stat"><div class="k">latence audio</div><div class="v" id="s-lat">–<small> ms</small></div></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:10px">
+      <strong style="flex:1 1 auto">Pads</strong>
+      <button id="reset">remettre les compteurs à zéro</button>
+    </div>
+    <div id="pads"></div>
+    <p class="note">Frappe chaque pad 10 fois : les compteurs doivent monter un par un.
+      Un compteur qui bouge sur un pad que tu n'as pas touché = diaphonie.</p>
+  </div>
+
+  <div class="card">
+    <pre id="log">en attente…</pre>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Journal
+// ---------------------------------------------------------------------------
+const logEl = document.getElementById('log');
+const lines = [];
+function log(msg) {
+  lines.push(new Date().toLocaleTimeString() + '  ' + msg);
+  if (lines.length > 120) lines.shift();
+  logEl.textContent = lines.join('\n');
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ---------------------------------------------------------------------------
+// Contexte d'exécution : la cause n°1 de « ça ne marche pas » est de servir la
+// page sur le mauvais protocole. On le dit tout de suite plutôt que de laisser
+// l'utilisateur chercher.
+// ---------------------------------------------------------------------------
+{
+  const https = location.protocol === 'https:';
+  const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+  const parts = [];
+  if (!navigator.bluetooth) {
+    parts.push('<span class="warn">Web Bluetooth indisponible ici</span> — il faut Chrome/Edge sur Android, Linux ou Windows, en https:// (ou localhost). Pas de support sur iOS ni Firefox.');
+  } else if (!https && !local) {
+    parts.push('<span class="warn">BLE bloqué</span> : cette page n\'est ni en https:// ni sur localhost.');
+  }
+  if (https) {
+    parts.push('Page en https:// → le <strong>WebSocket sera bloqué</strong> (contenu mixte). Sers la page en http:// pour tester le transport WS.');
+  }
+  document.getElementById('envnote').innerHTML = parts.join('<br>') || 'BLE et WS tous deux disponibles depuis cette page.';
+}
+
+// ---------------------------------------------------------------------------
+// Audio — un « ping » métallique très simple. Le but n'est pas de sonner comme
+// un pan (c'est le travail de panisto), mais d'avoir un retour immédiat et de
+// pouvoir mesurer la latence de sortie.
+// ---------------------------------------------------------------------------
+let ac = null;
+function initAudio() {
+  // latencyHint 'interactive' demande la plus faible latence possible. Le
+  // navigateur a le droit de l'ignorer — d'où la mesure affichée à côté.
+  ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  ac.resume();
+  document.getElementById('audio').disabled = true;
+  document.getElementById('audio').textContent = 'son activé';
+  refreshLatency();
+  log(`audio: baseLatency=${(ac.baseLatency * 1000).toFixed(1)}ms sampleRate=${ac.sampleRate}`);
+}
+function refreshLatency() {
+  if (!ac) return;
+  // outputLatency est la vraie latence bout en bout ; elle n'est pas toujours
+  // renseignée, auquel cas baseLatency est un plancher optimiste.
+  const l = (ac.outputLatency ?? ac.baseLatency) * 1000;
+  document.getElementById('s-lat').innerHTML =
+    l.toFixed(0) + '<small> ms</small>';
+}
+function ping(midi) {
+  if (!ac) return;
+  const f = 440 * Math.pow(2, (midi - 69) / 12);
+  const t = ac.currentTime;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.25, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+  g.connect(ac.destination);
+  // Fondamentale + deux partiels inharmoniques : ça suffit à évoquer le métal.
+  [[1, 1], [2.76, 0.4], [5.4, 0.15]].forEach(([r, a]) => {
+    const o = ac.createOscillator();
+    const og = ac.createGain();
+    o.frequency.value = f * r;
+    og.gain.value = a;
+    o.connect(og).connect(g);
+    o.start(t);
+    o.stop(t + 0.95);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Compteurs et grille de pads
+// ---------------------------------------------------------------------------
+const counts = new Map();   // note MIDI -> nombre de frappes
+const padEls = new Map();
+let hits = 0, peakRate = 0;
+const recent = [];          // horodatages d'arrivée, pour le débit crête
+
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const noteName = n => NAMES[n % 12] + (Math.floor(n / 12) - 1);
+
+function padFor(note) {
+  let el = padEls.get(note);
+  if (el) return el;
+  el = document.createElement('div');
+  el.className = 'pad';
+  el.innerHTML = `<div class="n">${noteName(note)}</div><div class="c">0</div>`;
+  // Insertion triée : les pads apparaissent dans l'ordre chromatique au fur et
+  // à mesure qu'on les découvre, ce qui rend la lecture bien plus simple.
+  const parent = document.getElementById('pads');
+  const after = [...padEls.keys()].filter(n => n > note).sort((a, b) => a - b)[0];
+  parent.insertBefore(el, after === undefined ? null : padEls.get(after));
+  padEls.set(note, el);
+  return el;
+}
+
+function onNote(note, velocity, deviceMs) {
+  hits++;
+  counts.set(note, (counts.get(note) || 0) + 1);
+  const el = padFor(note);
+  el.querySelector('.c').textContent = counts.get(note);
+  el.classList.add('lit');
+  setTimeout(() => el.classList.remove('lit'), 90);
+  ping(note);
+
+  const now = performance.now();
+  recent.push(now);
+  while (recent.length && now - recent[0] > 1000) recent.shift();
+  peakRate = Math.max(peakRate, recent.length);
+
+  document.getElementById('s-hits').textContent = hits;
+  document.getElementById('s-rate').innerHTML = peakRate + '<small> /s</small>';
+  if (deviceMs !== null) trackJitter(now, deviceMs);
+  refreshLatency();
+  log(`note ${noteName(note)} (${note}) vel=${velocity}` +
+      (deviceMs === null ? '' : ` t_device=${deviceMs}ms`));
+}
+
+// Jitter de liaison : écart entre l'horloge de l'ESP32 et celle du navigateur.
+// La dérive constante (offset) n'a aucune importance — c'est sa VARIATION qui
+// dit ce que le transport ajoute d'imprévisible, et donc ce que l'horodatage à
+// la source permet de récupérer à l'enregistrement.
+let offsets = [];
+function trackJitter(browserMs, deviceMs) {
+  offsets.push(browserMs - deviceMs);
+  if (offsets.length > 60) offsets.shift();
+  if (offsets.length < 5) return;
+  const spread = Math.max(...offsets) - Math.min(...offsets);
+  document.getElementById('s-jit').innerHTML = spread.toFixed(0) + '<small> ms</small>';
+}
+
+// ---------------------------------------------------------------------------
+// Parseur MIDI commun aux deux transports. Les deux liaisons transportent
+// exactement les mêmes octets ; seul l'emballage diffère.
+// ---------------------------------------------------------------------------
+function handleMidi(bytes, deviceMs) {
+  for (let i = 0; i + 3 <= bytes.length; i += 3) {
+    const status = bytes[i] & 0xf0;
+    const note = bytes[i + 1], vel = bytes[i + 2];
+    if (status === 0x90 && vel > 0) onNote(note, vel, deviceMs);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// BLE-MIDI
+// ---------------------------------------------------------------------------
+const MIDI_SERVICE = '03b80e5a-ede8-4b33-a751-6ce34ec4c700';
+const MIDI_CHAR    = '7772e5db-3868-4112-a1a9-f2669d106bf3';
+
+// L'horodatage BLE-MIDI est sur 13 bits de millisecondes : il reboucle toutes
+// les 8,192 s. On déroule ces bouclages pour obtenir un temps monotone.
+let tsHigh = 0, tsPrev = 0;
+function unwrap(ms13) {
+  if (ms13 < tsPrev - 4096) tsHigh += 8192;
+  tsPrev = ms13;
+  return tsHigh + ms13;
+}
+
+function onBleData(ev) {
+  const d = new Uint8Array(ev.target.value.buffer);
+  if (d.length < 5) return;
+  // [0] header 0x80|ts[12:7]   [1] timestamp 0x80|ts[6:0]   [2..] MIDI
+  const ms = unwrap(((d[0] & 0x3f) << 7) | (d[1] & 0x7f));
+  handleMidi(d.slice(2), ms);
+}
+
+document.getElementById('ble').onclick = async () => {
+  try {
+    setState('recherche du périphérique…', false);
+    const dev = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [MIDI_SERVICE] }],
+      optionalServices: [MIDI_SERVICE],
+    });
+    dev.addEventListener('gattserverdisconnected', () => setState('déconnecté', false));
+    const gatt = await dev.gatt.connect();
+    const svc = await gatt.getPrimaryService(MIDI_SERVICE);
+    const ch = await svc.getCharacteristic(MIDI_CHAR);
+    await ch.startNotifications();
+    ch.addEventListener('characteristicvaluechanged', onBleData);
+    setState('BLE — ' + dev.name, true);
+    log('BLE connecté à ' + dev.name);
+  } catch (e) {
+    setState('déconnecté', false);
+    log('BLE: ' + e.message);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// WebSocket — trame binaire : [0..3] µs uint32 LE, [4..] octets MIDI
+// ---------------------------------------------------------------------------
+document.getElementById('ws').onclick = () => {
+  const url = document.getElementById('wsurl').value.trim();
+  let sock;
+  try { sock = new WebSocket(url); } catch (e) { return log('WS: ' + e.message); }
+  sock.binaryType = 'arraybuffer';
+  sock.onopen = () => { setState('WS — ' + url, true); log('WS connecté'); };
+  sock.onclose = () => setState('déconnecté', false);
+  sock.onerror = () => log('WS: erreur (page en https ? mauvaise IP ? ESP32 hors ligne ?)');
+  sock.onmessage = (ev) => {
+    const d = new Uint8Array(ev.data);
+    if (d.length < 7) return;
+    const us = new DataView(ev.data).getUint32(0, true);
+    handleMidi(d.slice(4), us / 1000);
+  };
+};
+
+function setState(text, on) {
+  document.getElementById('state').textContent = text;
+  document.getElementById('dot').classList.toggle('on', on);
+}
+
+document.getElementById('audio').onclick = initAudio;
+document.getElementById('reset').onclick = () => {
+  hits = 0; peakRate = 0; recent.length = 0; offsets = [];
+  counts.clear();
+  padEls.forEach(el => el.querySelector('.c').textContent = '0');
+  document.getElementById('s-hits').textContent = '0';
+  document.getElementById('s-rate').innerHTML = '0<small> /s</small>';
+  document.getElementById('s-jit').innerHTML = '–<small> ms</small>';
+  log('compteurs remis à zéro');
+};
+</script>
