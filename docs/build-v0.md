@@ -71,6 +71,14 @@ la baguette** — c'est ce contact qui ferme le circuit.
 pio run -e esp32-serial -t upload && pio device monitor
 ```
 
+La carte a un pont **CP2102** : elle apparaît en `/dev/ttyUSB0`, le pilote `cp210x` est dans
+le noyau. Deux pièges classiques sous Linux :
+
+- **Permission refusée** sur le port → `sudo usermod -aG dialout $USER`, puis se
+  reconnecter.
+- **Le port apparaît puis disparaît** une seconde après le branchement → c'est `brltty`
+  (support braille) qui capture les CP210x. `sudo apt remove brltty`.
+
 Frappe chaque pad. Tu dois voir :
 
 ```
