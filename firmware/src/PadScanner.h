@@ -32,7 +32,7 @@
 
 class PadScanner {
  public:
-  // hand : 0 = bracelet A, 1 = bracelet B (si USE_WRIST_B).
+  // hand : 0 = canal A (bracelet), 1 = canal B (baguette filaire, si USE_WRIST_B).
   // tHitUs : instant de la DÉTECTION, pas de l'identification.
   using HitCallback = void (*)(uint8_t pad, uint8_t hand, int64_t tHitUs);
 

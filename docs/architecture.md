@@ -46,7 +46,7 @@ Ce que ça change :
   diaphonie s'effondre
 - **un seul** nœud haute impédance à fiabiliser, pas 29
 - les pads sont *pilotés* (impédance de sortie ~50 Ω), donc insensibles au ronflement
-- **deuxième main = +1 fil + GPIO35**, aucun changement du câblage des pads
+- **un seul bracelet couvre les deux baguettes** : le corps est un conducteur unique
 
 ### Sécurité
 
@@ -200,8 +200,11 @@ Les compteurs imprimés toutes les 5 s le pilotent :
 
 - **Vélocité** — 1 piézo collé sous la plaque sur GPIO36 (ADC1_CH0). Le contact dit *quelle*
   note, le piézo dit *quelle force*. +1 €, aucun recâblage.
-- **Deux mains** — +1 bracelet sur GPIO35, `USE_WRIST_B = true`. Le scanner gère déjà les
-  deux canaux ; permet de distinguer main gauche et main droite.
+- **Attribution main gauche / main droite** — le scanner a un second canal sur GPIO35
+  (`USE_WRIST_B = true`), mais ⚠️ **un second bracelet ne sert à rien** : le corps est un
+  conducteur unique, les deux bracelets verraient exactement la même chose. Distinguer les
+  mains exige des **baguettes filaires** (fil dans le manche, sans passer par le corps), une
+  par canal, et l'abandon du bracelet. C'est le compromis inverse de la v0.
 - **USB-MIDI plug-and-play** — remplacer le WROOM-32 par un **ESP32-S3** (~8 €). Le scan 595
   est identique, seul `transport/` gagne un `UsbMidiTransport.cpp` (TinyUSB, mode
   `USB OTG`). Chrome Android expose alors le pan comme périphérique MIDI class-compliant via

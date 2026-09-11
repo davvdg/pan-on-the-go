@@ -5,16 +5,34 @@ les prix ci-dessous sont ceux du lot.
 
 ## Électronique
 
+### Étape 1 — banc 4 pads (~10 €)
+
 | Qté | Article | ~Prix | Note |
 |---:|---|---:|---|
-| 1 | ESP32 WROOM-32 DevKit | – | déjà possédé |
-| 4 | **74HC595** (DIP-16) | 2 € | registres à décalage, 3 fils → 32 sorties. Prends-en 6, c'est le même prix |
-| 1 | Résistance **1 MΩ** | ~0 € | pull-down du bracelet. Prends aussi une 10 MΩ en secours |
-| 2 | Résistance 220 Ω | ~0 € | en série sur SCK et MOSI, propreté des fronts |
-| 4 | Condensateur 100 nF | ~0 € | découplage, un par 74HC595, au plus près de ses broches d'alim |
-| 1 | Plaque à trous 7×9 cm | 2 € | les 4 puces + le découplage |
-| 1 | Nappe IDC 34 points, 1 m | 4 € | 29 pads + masse et rab |
-| 1 | Lot de fils Dupont F/F | 3 € | |
+| 1 | ESP32 WROOM-32 DevKit (pont CP2102) | – | déjà possédé |
+| 5 | **74HC595**, boîtier **DIP-16** | 2 € | 3 fils → 8 sorties, chaînables. 4 utiles + 1 rechange. ⚠️ Bien **HC**, pas **HCT** : le HCT n'est spécifié qu'à 5 V, on est en 3,3 V |
+| 10 | Résistance **1 MΩ** ¼ W | ~0 € | pull-down du bracelet. Une seule sert, vendues par 10 |
+| 10 | Résistance **220 Ω** ¼ W | ~0 € | en série sur SCK et MOSI, propreté des fronts |
+| 10 | Condensateur **100 nF** céramique | ~0 € | découplage, un par 74HC595, au plus près de ses broches d'alim |
+| 1 | Breadboard 830 points | 3 € | le 595 et ses résistances, sans souder |
+| 1 | Lot de fils Dupont M/M (×40) | 2 € | breadboard ↔ ESP32 |
+| 1 | Lot de pinces crocodile (×10) | 3 € | bracelet et pads de test sans rien souder |
+
+### Étape 4 — passage à 29 pads (~12 €)
+
+| Qté | Article | ~Prix | Note |
+|---:|---|---:|---|
+| 1 | Plaque à trous ~7×9 cm, pastilles cuivre | 2 € | les 4 × 595 en dur, une fois le banc validé |
+| 4 | Support DIP-16 (tulipe) | 1 € | pour ne pas souder les 595 directement |
+| 1 | Nappe 34 conducteurs, 1,5 m | 4 € | 29 pads + masse + rab. Ou 30 m de fil monobrin 22 AWG |
+| 1 | Barrette femelle 2,54 mm sécable (×40) | 1 € | brancher l'ESP32 sur la plaque sans le souder |
+| 1 | Chatterton | 2 € | isoler les pattes des attaches parisiennes au dos |
+
+### À ne **pas** acheter
+
+- **74HCT595** (5 V seulement) ni version SMD (la plaque à trous veut du DIP)
+- **Level shifter** : tout est en 3,3 V d'un bout à l'autre
+- **Pull-ups** sur les pads : ils sont pilotés, c'est tout l'intérêt de l'inversion
 
 **Optionnel, pour plus tard**
 

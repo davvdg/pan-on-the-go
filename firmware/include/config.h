@@ -19,8 +19,16 @@ static constexpr int PIN_SR_LATCH = 5;   // GPIO  -> RCLK  (broche 12, tous en /
 // parasite) : on veut un nœud propre avec notre pull-down externe de 1 MΩ.
 static constexpr int PIN_WRIST_A  = 34;
 
-// Deuxième bracelet (main gauche/droite). Mets USE_WRIST_B à true et câble un
-// second bracelet + pull-down sur GPIO35. Aucun changement côté pads.
+// Second canal de détection, sur GPIO35 avec son propre pull-down de 1 MΩ.
+//
+// ⚠️ Un SEUL bracelet suffit pour les DEUX baguettes : le corps est un
+// conducteur unique, la baguette gauche arrive au bracelet droit par le torse
+// (~1 kΩ, négligeable). Et pour la même raison, un second bracelet ne permet
+// PAS de distinguer les mains — il verrait exactement la même chose.
+//
+// Ce canal ne sert donc que si l'électrode B est une BAGUETTE FILAIRE (fil
+// dans le manche, sans passer par le corps). Câbler les deux baguettes et
+// abandonner le bracelet donne alors l'attribution main gauche / main droite.
 static constexpr bool USE_WRIST_B = false;
 static constexpr int  PIN_WRIST_B = 35;
 

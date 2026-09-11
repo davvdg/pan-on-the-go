@@ -52,7 +52,7 @@ void setup() {
   Serial.println("=== pan-on-the-go ===");
   Serial.printf("transport   : %s\n", gTransport.name());
   Serial.printf("pads        : %u  (%u x 74HC595)\n", (unsigned)PAD_COUNT, (unsigned)SR_COUNT);
-  Serial.printf("bracelets   : %u\n", USE_WRIST_B ? 2u : 1u);
+  Serial.printf("canaux      : %u\n", USE_WRIST_B ? 2u : 1u);
   Serial.printf("settle      : %u us\n", (unsigned)SETTLE_US);
   Serial.printf("lockout     : %u us\n", (unsigned)LOCKOUT_US);
   Serial.printf("note len    : %u ms\n", (unsigned)NOTE_LEN_MS);
